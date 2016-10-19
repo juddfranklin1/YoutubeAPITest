@@ -12,8 +12,6 @@ using Microsoft.Extensions.Logging;
 using TestBootstrapWebApp.Data;
 using TestBootstrapWebApp.Models;
 using TestBootstrapWebApp.Services;
-using EFGetStarted.AspNetCore.ExistingDb.Models;
-using Microsoft.EntityFrameworkCore;
 
 namespace TestBootstrapWebApp
 {

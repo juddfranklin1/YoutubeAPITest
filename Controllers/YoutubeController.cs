@@ -80,14 +80,14 @@ namespace TestBootstrapWebApp.Controllers
         }
 
         // POST: /Manage/AddYoutubeSearch
-        [HttpPost]
-        public async Task<IActionResult> AddYoutubeSearch(YoutubeModel model)
-        {
-            if (!ModelState.IsValid)
-            {
-                return View(model);
-            }
-        }
+        // [HttpPost]
+        // public async Task<IActionResult> AddYoutubeSearch(YoutubeModel model)
+        // {
+        //     if (!ModelState.IsValid)
+        //     {
+        //         return View(model);
+        //     }
+        // }
  
         public IActionResult Error()
         {
