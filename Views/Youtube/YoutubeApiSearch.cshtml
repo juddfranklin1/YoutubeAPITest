@@ -1,0 +1,41 @@
+@{
+    ViewData["Title"] = "Youtube Feed";
+}
+
+<h1>@ViewData["Title"]</h1>
+
+<div>
+    <form id="videoSearch"
+            asp-action="YoutubeSearchQuery" 
+            asp-controller="Home" 
+            method="post">
+        <input type="text" 
+            id="SearchTerm" 
+            name="SearchTerm"
+            placeholder="Try a search term..." value="" />
+        <select id="Order"
+            name="Order">
+            <optgroup>
+                <option value="" disabled selected>Choose a Sort Method</option>
+                <option value="Relevance">Relevance</option>
+                <option value="Date">Date</option>
+                <option value="Rating">Rating</option>
+                <option value="Title">Title</option>
+                <option value="ViewCount">View Count</option>    
+            </optgroup>    
+        </select>
+        <!--<select id="VideoDefinition"
+            name="VideoDefinition">
+            <optgroup>
+                <option value="" disabled selected>Choose a Video Definition</option>
+                <option value="any">Any</option>
+                <option value="high">HD</option>
+                <option value="standard">SD</option> 
+            </optgroup>    
+        </select>-->
+        <button type="submit" id="YoutubeSearchButton">Search YouTube!</button>
+    </form>
+</div>
+<div id="SearchResults">
+    <div>@Html.Raw(ViewData["videoSearch"])</div>
+</div>

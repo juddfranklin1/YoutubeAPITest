@@ -1,0 +1,11 @@
+<div class="messagebox"></div>
+<form asp-action="UploadFiles" 
+      asp-controller="Home" 
+      method="post"
+      enctype="multipart/form-data">
+    <input type="file" id="files" 
+           name="files" multiple />
+    <input type="button" 
+           id="upload" 
+           value="Upload Selected Files" />
+</form>
