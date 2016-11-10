@@ -2,12 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Xml;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 
 using System.Reflection;
 using System.Threading;
+using System.Text;
 
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Services;
@@ -21,6 +23,7 @@ namespace YoutubeAPIImplementation
 
     public class YoutubeAPISearch
     {
+        private const string ApiKeyString = "AIzaSyBnAloJ18VwhKYgtz8qK9FYxRnpZPKkA04";
 
         /// <summary>
         /// YouTube Data API v3 sample: search by keyword.
@@ -32,34 +35,97 @@ namespace YoutubeAPIImplementation
         /// Please ensure that you have enabled the YouTube Data API for your project.
         /// </summary>
         [STAThread]
-        public async Task<Dictionary<string,string>> YoutubeSearchAsync(Dictionary<string,dynamic> arg)
+        public async Task<Dictionary<string,Dictionary<string,dynamic>>> YoutubeSearchAsync(Dictionary<string,string> arg)
         {
+            Dictionary<string,Dictionary<string,dynamic>> ConstructedResults = new Dictionary<string,Dictionary<string,dynamic>>();
             try
             {
-                Task<Dictionary<string,string>> SearchResults = new YoutubeAPISearch().Run(arg);
+                Task<Dictionary<string,SearchResultSnippet>> SearchResults = new YoutubeAPISearch().RunSearch(arg);
                 SearchResults.Wait();
-                Dictionary<string,string> Results = await SearchResults;
+                Dictionary<string,SearchResultSnippet> Results = await SearchResults;
+                if (Results.Count() > 0)
+                {
+                    List<string> videoIds = new List<string>();
+                    foreach (string videoId in Results.Keys)
+                    {
+                        videoIds.Add(videoId);
+                        ConstructedResults.Add(videoId,new Dictionary<string,dynamic>());
+                        ConstructedResults[videoId]["snippet"] = Results[videoId];
+                    }
+                    
+                    Task<List<Video>> VideoDetails = new YoutubeAPISearch().RunVideoLookup(videoIds);
 
-                return Results;
+                    VideoDetails.Wait();
+                    
+                    List<Video> VideoDetailResults = await VideoDetails;
+
+                    foreach (Video videoResult in VideoDetailResults)
+                    {
+                        TimeSpan videoDuration = XmlConvert.ToTimeSpan(videoResult.ContentDetails.Duration);
+
+                        ConstructedResults[videoResult.Id]["contentDetails"] = videoResult.ContentDetails;
+                        ConstructedResults[videoResult.Id]["videoDurationString"] = videoDuration.ToString();
+                    }
+                }
+
+                return ConstructedResults;
             }
             catch (AggregateException ex)
             {
-                Dictionary<string,string> Results = new Dictionary<string,string>();
+                Dictionary<string,dynamic> Errors = new Dictionary<string,dynamic>();
+                Dictionary<string,Dictionary<string,dynamic>> Results = new Dictionary<string,Dictionary<string,dynamic>>();
+                
                 int Counter = 0;
+                
+                SearchResultSnippet errorResult = new SearchResultSnippet();
+
+                StringBuilder errorMessages = new StringBuilder("Errors");
+
                 foreach (var e in ex.InnerExceptions)
-                {
-                    Results.Add("Error #" + Counter, e.Message);
+                {   
+                    errorMessages.AppendFormat("\nError #{0}: {1}", Counter.ToString(), e.ToString());
                     Counter++;
                 }
+                errorResult.Title = "***YOUTUBE SEARCH EXCEPTIONS THROWN***";   
+                errorResult.Description = errorMessages.ToString();
+                Errors.Add("Exceptions: ", errorResult);
+                Results.Add("NO_ID", Errors);
                 return Results;
             }
         }
 
-        private async Task<Dictionary<string,string>> Run(Dictionary<string,dynamic> arg)
+        private async Task<List<Video>> RunVideoLookup(List<string> arg)
         {
             var youtubeService = new YouTubeService(new BaseClientService.Initializer()
             {
-                ApiKey = "AIzaSyBnAloJ18VwhKYgtz8qK9FYxRnpZPKkA04",
+                ApiKey = ApiKeyString,
+                ApplicationName = this.GetType().ToString()
+            });
+
+            var videoListRequest = youtubeService.Videos.List("snippet,contentDetails,statistics,status");
+            StringBuilder idList = new StringBuilder();
+            int Iterator = 1;
+            foreach (string id in arg) {
+                idList.Append(id);
+                if (Iterator < arg.Count())
+                {
+                    idList.Append(',');
+                }
+                Iterator++;
+            }
+            videoListRequest.Id = idList.ToString();
+
+            var videoListResponse = await videoListRequest.ExecuteAsync();
+            List<Video> videos = videoListResponse.Items.ToList();
+
+            return videos;
+        }
+
+        private async Task<Dictionary<string,SearchResultSnippet>> RunSearch(Dictionary<string,string> arg)
+        {
+            var youtubeService = new YouTubeService(new BaseClientService.Initializer()
+            {
+                ApiKey = ApiKeyString,
                 ApplicationName = this.GetType().ToString()
             });
 
@@ -69,55 +135,170 @@ namespace YoutubeAPIImplementation
             } else {
                 searchListRequest.Q = arg["SearchTerm"];
             }
-
-            if (String.IsNullOrEmpty(arg["Order"])){
-                searchListRequest.Order = searchListRequest.Order.Value; // Default
-            } else {
-                string OrderString = arg["Order"];
-                switch(OrderString){
-                    case ("Relevance"):
-                        searchListRequest.Order = SearchResource.ListRequest.OrderEnum.Relevance;
-                        break;
-                    case ("Date"):
-                        searchListRequest.Order = SearchResource.ListRequest.OrderEnum.Date;
-                        break;
-                    case ("Rating"):
-                        searchListRequest.Order = SearchResource.ListRequest.OrderEnum.Rating;
-                        break;
-                    case ("Title"):
-                        searchListRequest.Order = SearchResource.ListRequest.OrderEnum.Title;
-                        break;
-                    case ("ViewCount"):
-                        searchListRequest.Order = SearchResource.ListRequest.OrderEnum.ViewCount;
-                        break;
-                    default:
-                        searchListRequest.Order = SearchResource.ListRequest.OrderEnum.Relevance;
-                        break;                                                                                              
-                }
-            }
             
+            SearchSettings Settings = new SearchSettings();
+
             searchListRequest.Type = "video";
+            searchListRequest.Order = Settings.SetOrderSetting(arg);
+            searchListRequest.VideoDefinition = Settings.SetDefinitionSetting(arg);
+            searchListRequest.VideoDimension = Settings.SetDimensionSetting(arg);
+            searchListRequest.VideoDuration = Settings.SetDurationSetting(arg);
+            
             searchListRequest.MaxResults = 10;
+            searchListRequest.VideoEmbeddable = SearchResource.ListRequest.VideoEmbeddableEnum.True__;
+
             // Call the search.list method to retrieve results matching the specified query term.
             var searchListResponse = await searchListRequest.ExecuteAsync();
-
-            Dictionary<string,string> videos = new Dictionary<string,string>();
+            Dictionary<string,SearchResultSnippet> videos = new Dictionary<string,SearchResultSnippet>();
 
             // Add each result to the appropriate list, and then display the lists of
             // matching videos, channels, and playlists.
-            int Incrementer = 1;
-            foreach (var searchResult in searchListResponse.Items)
+            foreach (var individualSearchResult in searchListResponse.Items)
             {
-                if(!videos.ContainsKey(searchResult.Snippet.Title)){
-                    videos.Add(String.Format("{0}", searchResult.Snippet.Title),String.Format("<iframe width='420' height='315' src='https://www.youtube.com/embed/{1}' frameborder='0' allowfullscreen></iframe>", searchResult.Snippet.Title, searchResult.Id.VideoId));
-                } else {
-                    videos.Add(String.Format("{0} #{1}", searchResult.Snippet.Title,Incrementer),String.Format("<iframe width='420' height='315' src='https://www.youtube.com/embed/{1}' frameborder='0' allowfullscreen></iframe>", searchResult.Snippet.Title, searchResult.Id.VideoId));
-                    Incrementer++;
-                }
+                videos.Add(individualSearchResult.Id.VideoId,individualSearchResult.Snippet);
             }
-
+                        
             return videos;
         }
-        
+
+    }
+
+    public class SearchSettings
+    {
+
+        private SearchResource.ListRequest.VideoDefinitionEnum _definition;
+
+        public SearchResource.ListRequest.VideoDefinitionEnum CurrentDefinition
+        {
+            get { return _definition; }
+            set { _definition = value; }
+        }
+
+        public SearchResource.ListRequest.VideoDefinitionEnum SetDefinitionSetting(Dictionary<string,string> arg)
+        {
+            if (!arg.ContainsKey("VideoDefinition") || arg["VideoDefinition"] == "null")
+            {
+                CurrentDefinition = SearchResource.ListRequest.VideoDefinitionEnum.Any;
+            } else {
+                string ArguedDefinition = arg["VideoDefinition"];
+                switch(ArguedDefinition){
+                    case ("HD"):
+                        CurrentDefinition = SearchResource.ListRequest.VideoDefinitionEnum.High;
+                        break;
+                    case ("SD"):
+                        CurrentDefinition = SearchResource.ListRequest.VideoDefinitionEnum.Standard;
+                        break;
+                    default:
+                        CurrentDefinition = SearchResource.ListRequest.VideoDefinitionEnum.Any;
+                        break;                                                                                              
+                }
+            }
+            return CurrentDefinition;
+        }
+
+
+        private SearchResource.ListRequest.VideoDimensionEnum _dimension;
+
+        public SearchResource.ListRequest.VideoDimensionEnum CurrentDimension
+        {
+            get { return _dimension; }
+            set { _dimension = value; }
+        }
+
+        public SearchResource.ListRequest.VideoDimensionEnum SetDimensionSetting(Dictionary<string,string> arg)
+        {
+            if (!arg.ContainsKey("VideoDimension") || arg["VideoDimension"] == "null")
+            {
+                CurrentDimension = SearchResource.ListRequest.VideoDimensionEnum.Any;
+            } else {
+                string ArguedValue = arg["VideoDimension"];
+                switch(ArguedValue){
+                    case ("2D"):
+                        CurrentDimension = SearchResource.ListRequest.VideoDimensionEnum.Value2d;
+                        break;
+                    case ("3D"):
+                        CurrentDimension = SearchResource.ListRequest.VideoDimensionEnum.Value3d;
+                        break;
+                    default:
+                        CurrentDimension = SearchResource.ListRequest.VideoDimensionEnum.Any;
+                        break;                                                                                              
+                }
+            }
+            return CurrentDimension;
+        }
+
+
+        private SearchResource.ListRequest.OrderEnum _order;
+
+        public SearchResource.ListRequest.OrderEnum CurrentOrder
+        {
+            get { return _order; }
+            set { _order = value; }
+        }
+
+        public SearchResource.ListRequest.OrderEnum SetOrderSetting(Dictionary<string,string> arg)
+        {
+            if (!arg.ContainsKey("Order") || arg["Order"] == "null")
+            {
+                CurrentOrder = SearchResource.ListRequest.OrderEnum.Relevance;
+            } else {
+                string ArguedValue = arg["Order"];
+                switch(ArguedValue){
+                    case ("Relevance"):
+                        CurrentOrder = SearchResource.ListRequest.OrderEnum.Relevance;
+                        break;
+                    case ("Date"):
+                        CurrentOrder = SearchResource.ListRequest.OrderEnum.Date;
+                        break;
+                    case ("Rating"):
+                        CurrentOrder = SearchResource.ListRequest.OrderEnum.Rating;
+                        break;
+                    case ("Title"):
+                        CurrentOrder = SearchResource.ListRequest.OrderEnum.Title;
+                        break;
+                    case ("ViewCount"):
+                        CurrentOrder = SearchResource.ListRequest.OrderEnum.ViewCount;
+                        break;
+                    default:
+                        CurrentOrder = SearchResource.ListRequest.OrderEnum.Relevance;
+                        break;                                                                                              
+                }
+            }
+            return CurrentOrder;
+        }
+
+
+        private SearchResource.ListRequest.VideoDurationEnum _duration;
+
+        public SearchResource.ListRequest.VideoDurationEnum CurrentDuration
+        {
+            get { return _duration; }
+            set { _duration = value; }
+        }
+
+        public SearchResource.ListRequest.VideoDurationEnum SetDurationSetting(Dictionary<string,string> arg)
+        {
+            if (!arg.ContainsKey("VideoDuration") || arg["VideoDuration"] == "null")
+            {
+                CurrentDuration = SearchResource.ListRequest.VideoDurationEnum.Any;
+            } else {
+                string ArguedValue = arg["VideoDuration"];
+                switch(ArguedValue){
+                    case ("Relevance"):
+                        CurrentDuration = SearchResource.ListRequest.VideoDurationEnum.Long__;
+                        break;
+                    case ("Date"):
+                        CurrentDuration = SearchResource.ListRequest.VideoDurationEnum.Medium;
+                        break;
+                    case ("Rating"):
+                        CurrentDuration = SearchResource.ListRequest.VideoDurationEnum.Short__;
+                        break;
+                    default:
+                        CurrentDuration = SearchResource.ListRequest.VideoDurationEnum.Any;
+                        break;                                                                                              
+                }
+            }
+            return CurrentDuration;
+        }
     }
 }

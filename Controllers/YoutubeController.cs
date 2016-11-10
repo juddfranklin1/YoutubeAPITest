@@ -1,9 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
+using System.Xml;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Google.Apis.YouTube.v3;
 
 using System.IO;
 using System.Reflection;
@@ -14,6 +15,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Net.Http.Headers;
 using YoutubeAPIImplementation;
 using TestBootstrapWebApp.Models;
+using Google.Apis.YouTube.v3;
+using Google.Apis.YouTube.v3.Data;
 
 namespace TestBootstrapWebApp.Controllers
 {
@@ -25,23 +28,68 @@ namespace TestBootstrapWebApp.Controllers
         {
             return View();
         }
+        private Dictionary<string,string> BuildArgumentsDictionary(ICollection<string> arg)
+        {
+            Dictionary<string,string> ArgumentsDictionary = new Dictionary<string,string>();
+
+            foreach (String token in arg)
+            {
+                if (String.IsNullOrEmpty(Request.Form[token])){
+                    ArgumentsDictionary.Add(token,"");                    
+                }
+                else {
+                    ArgumentsDictionary.Add(token,Request.Form[token]);
+                }
+            }
+            return ArgumentsDictionary;
+        }
+
+        private string BuildSearchResult(Dictionary<string,Dictionary<string,dynamic>> SearchResults)
+        {
+            StringBuilder SearchResultString = new StringBuilder();
+            int Incrementer = 0;
+
+            foreach(KeyValuePair<string, Dictionary<string,dynamic>> entry in SearchResults)
+            {
+                string EmbedCodeString = String.Format("<iframe src='https://www.youtube.com/embed/{0}' frameborder='0' allowfullscreen></iframe>", entry.Key);
+                
+                if(Incrementer %2 == 0){
+                    SearchResultString.Append("<div class='row'>");
+                }
+
+                if (entry.Key == "NO_ID"){
+                    SearchResultString.Append("<div class='col-md-12'><div class='alert-danger'>There was an error in your search.</div></div></div>");
+                    return SearchResultString.ToString();
+                }
+                string FormattedPublishedDate = entry.Value["snippet"].PublishedAt.ToString();
+
+                TimeSpan videoDuration = XmlConvert.ToTimeSpan(entry.Value["contentDetails"].Duration);
+
+                SearchResultString.AppendFormat("<div class='col-sm-6'><h3 class='video-title'>{0}</h3><h4 class='video-upload-time'>{1}</h4><h6 class='video-duration'>{2}</h6><p class='video-description'>{3}</p><div class='video-embed'>{4}</div></div>",entry.Value["snippet"].Title,FormattedPublishedDate,videoDuration.ToString(),entry.Value["snippet"].Description,EmbedCodeString);
+                if(Incrementer %2 == 1){
+                    SearchResultString.Append("</div>");
+                }
+                Incrementer++;
+            }
+            return SearchResultString.ToString();
+        }
+
+        private string ConductSearch(ICollection<string> arg)
+        {
+            Dictionary<string,string> ArgumentsDictionary = BuildArgumentsDictionary(arg);
+
+            YoutubeAPISearch ThisSearch = new YoutubeAPISearch();
+            Dictionary<string,Dictionary<string,dynamic>> SearchResults = ThisSearch.YoutubeSearchAsync(ArgumentsDictionary).Result;
+            
+            string SearchResultString = BuildSearchResult(SearchResults);
+
+            return SearchResultString;
+        }
 
         [HttpPost]
-        public IActionResult YoutubeSearchQuery()
+        public IActionResult YoutubeSearch()
         {
-            Dictionary<string,dynamic> Arguments = new Dictionary<string,dynamic>();
-
-            string SearchTerm = Request.Form["SearchTerm"];
-            
-            if (String.IsNullOrEmpty(SearchTerm)){
-                SearchTerm = "CAN Ege Bamyasi";
-            }
-
-            Arguments.Add("Q", SearchTerm);
-
-            YoutubeAPISearch ThisSearch = new YoutubeAPIImplementation.YoutubeAPISearch();
-            Dictionary<string,string> SearchResults = ThisSearch.YoutubeSearchAsync(Arguments).Result;
-            string SearchResultString = String.Format("{0}\n", string.Join("\n", SearchResults));
+            string SearchResultString = ConductSearch(Request.Form.Keys);
 
             ViewData["videoSearch"] = @SearchResultString;
 
@@ -51,30 +99,7 @@ namespace TestBootstrapWebApp.Controllers
         [HttpPost]
         public IActionResult YoutubeSearchAjax()
         {
-            Dictionary<string,dynamic> ArgumentsDictionary = new Dictionary<string,dynamic>();
-
-            foreach (String token in Request.Form.Keys)
-            {
-                if (String.IsNullOrEmpty(Request.Form[token])){
-                    ArgumentsDictionary.Add(token,"");                    
-                }
-                else {
-                    ArgumentsDictionary.Add(token,Request.Form[token]);
-                }
-                Console.WriteLine("" + token + ": " + (string)(ArgumentsDictionary[token]));
-            }
-
-            YoutubeAPISearch ThisSearch = new YoutubeAPISearch();
-            Dictionary<string,string> SearchResults = ThisSearch.YoutubeSearchAsync(ArgumentsDictionary).Result;
-
-            string VideosString = "";
-            
-            foreach (var Video in SearchResults){
-                VideosString += "<h3>" + Video.Key + "</h3>";
-                VideosString += Video.Value;
-            }
-
-            string SearchResultString = String.Format("{0}\n", string.Join("\n", VideosString));
+            string SearchResultString = ConductSearch(Request.Form.Keys);
 
             return Json(SearchResultString);
         }

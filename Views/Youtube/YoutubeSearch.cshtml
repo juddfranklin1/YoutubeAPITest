@@ -5,16 +5,18 @@
 <h1>@ViewData["Title"]</h1>
 
 <div>
-    <form id=""
+    <form id="videoSearch"
             asp-action="YoutubeSearch" 
             asp-controller="Youtube" 
             method="post">
-            
+        
+        <h2>This Form will submit via AJAX</h2>
+
         <input type="text" 
             id="SearchTerm" 
             name="SearchTerm"
             placeholder="Try a search term..." value="" />
-
+        
         <select id="Order"
             name="Order">
             <optgroup>
@@ -57,7 +59,7 @@
                 <option value="any">Any</option>
             </optgroup>
         </select>
-        
+
         <button type="submit" id="YoutubeSearchButton">Search YouTube!</button>
     </form>
 </div>
