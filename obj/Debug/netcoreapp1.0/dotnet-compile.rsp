@@ -268,4 +268,5 @@
 /Users/juddfranklin/projects/YoutubeAPITest/Services/IEmailSender.cs
 /Users/juddfranklin/projects/YoutubeAPITest/Services/ISmsSender.cs
 /Users/juddfranklin/projects/YoutubeAPITest/Services/MessageServices.cs
-/Users/juddfranklin/projects/YoutubeAPITest/Services/YoutubeAPI.cs
+/Users/juddfranklin/projects/YoutubeAPITest/Services/YoutubeAPI/SearchParameters.cs
+/Users/juddfranklin/projects/YoutubeAPITest/Services/YoutubeAPI/YoutubeAPI.cs
