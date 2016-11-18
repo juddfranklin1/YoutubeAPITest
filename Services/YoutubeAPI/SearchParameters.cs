@@ -23,32 +23,36 @@ namespace YoutubeAPIImplementation
     public class SearchSettings
     {
 
+        public void SetSettings(Google.Apis.YouTube.v3.SearchResource.ListRequest request,Dictionary<string,string> arg)
+        {
+            Dictionary<string,dynamic> settingsDict = new Dictionary<string,dynamic>();
+
+            SearchResource.ListRequest.VideoDefinitionEnum DefinitionSetting = SetDefinitionSetting(arg);
+            SearchResource.ListRequest.VideoDimensionEnum DimensionSetting = SetDimensionSetting(arg);
+            SearchResource.ListRequest.OrderEnum OrderSetting = SetOrderSetting(arg);
+            SearchResource.ListRequest.VideoDurationEnum DurationSetting = SetDurationSetting(arg);
+            
+            request.VideoDefinition = DefinitionSetting;
+            request.VideoDimension = DimensionSetting;
+            request.Order = OrderSetting;
+            request.VideoDuration = DurationSetting;
+        }
         private SearchResource.ListRequest.VideoDefinitionEnum _definition;
 
-        public SearchResource.ListRequest.VideoDefinitionEnum CurrentDefinition
+        private SearchResource.ListRequest.VideoDefinitionEnum CurrentDefinition
         {
             get { return _definition; }
             set { _definition = value; }
         }
 
-        public SearchResource.ListRequest.VideoDefinitionEnum SetDefinitionSetting(Dictionary<string,string> arg)
+        private SearchResource.ListRequest.VideoDefinitionEnum SetDefinitionSetting(Dictionary<string,string> arg)
         {
             if (!arg.ContainsKey("VideoDefinition") || arg["VideoDefinition"] == "null")
             {
                 CurrentDefinition = SearchResource.ListRequest.VideoDefinitionEnum.Any;
             } else {
                 string ArguedDefinition = arg["VideoDefinition"];
-                switch(ArguedDefinition){
-                    case ("high"):
-                        CurrentDefinition = SearchResource.ListRequest.VideoDefinitionEnum.High;
-                        break;
-                    case ("standard"):
-                        CurrentDefinition = SearchResource.ListRequest.VideoDefinitionEnum.Standard;
-                        break;
-                    default:
-                        CurrentDefinition = SearchResource.ListRequest.VideoDefinitionEnum.Any;
-                        break;                                                                                              
-                }
+                CurrentDefinition = (SearchResource.ListRequest.VideoDefinitionEnum)Enum.Parse(typeof(SearchResource.ListRequest.VideoDefinitionEnum),ArguedDefinition);
             }
             return CurrentDefinition;
         }
@@ -56,30 +60,20 @@ namespace YoutubeAPIImplementation
 
         private SearchResource.ListRequest.VideoDimensionEnum _dimension;
 
-        public SearchResource.ListRequest.VideoDimensionEnum CurrentDimension
+        private SearchResource.ListRequest.VideoDimensionEnum CurrentDimension
         {
             get { return _dimension; }
             set { _dimension = value; }
         }
 
-        public SearchResource.ListRequest.VideoDimensionEnum SetDimensionSetting(Dictionary<string,string> arg)
+        private SearchResource.ListRequest.VideoDimensionEnum SetDimensionSetting(Dictionary<string,string> arg)
         {
             if (!arg.ContainsKey("VideoDimension") || arg["VideoDimension"] == "null")
             {
                 CurrentDimension = SearchResource.ListRequest.VideoDimensionEnum.Any;
             } else {
                 string ArguedValue = arg["VideoDimension"];
-                switch(ArguedValue){
-                    case ("2D"):
-                        CurrentDimension = SearchResource.ListRequest.VideoDimensionEnum.Value2d;
-                        break;
-                    case ("3D"):
-                        CurrentDimension = SearchResource.ListRequest.VideoDimensionEnum.Value3d;
-                        break;
-                    default:
-                        CurrentDimension = SearchResource.ListRequest.VideoDimensionEnum.Any;
-                        break;                                                                                              
-                }
+                CurrentDimension = (SearchResource.ListRequest.VideoDimensionEnum)Enum.Parse(typeof(SearchResource.ListRequest.VideoDimensionEnum),ArguedValue);
             }
             return CurrentDimension;
         }
@@ -87,39 +81,20 @@ namespace YoutubeAPIImplementation
 
         private SearchResource.ListRequest.OrderEnum _order;
 
-        public SearchResource.ListRequest.OrderEnum CurrentOrder
+        private SearchResource.ListRequest.OrderEnum CurrentOrder
         {
             get { return _order; }
             set { _order = value; }
         }
 
-        public SearchResource.ListRequest.OrderEnum SetOrderSetting(Dictionary<string,string> arg)
+        private SearchResource.ListRequest.OrderEnum SetOrderSetting(Dictionary<string,string> arg)
         {
             if (!arg.ContainsKey("Order") || arg["Order"] == "null")
             {
                 CurrentOrder = SearchResource.ListRequest.OrderEnum.Relevance;
             } else {
                 string ArguedValue = arg["Order"];
-                switch(ArguedValue){
-                    case ("Relevance"):
-                        CurrentOrder = SearchResource.ListRequest.OrderEnum.Relevance;
-                        break;
-                    case ("Date"):
-                        CurrentOrder = SearchResource.ListRequest.OrderEnum.Date;
-                        break;
-                    case ("Rating"):
-                        CurrentOrder = SearchResource.ListRequest.OrderEnum.Rating;
-                        break;
-                    case ("Title"):
-                        CurrentOrder = SearchResource.ListRequest.OrderEnum.Title;
-                        break;
-                    case ("ViewCount"):
-                        CurrentOrder = SearchResource.ListRequest.OrderEnum.ViewCount;
-                        break;
-                    default:
-                        CurrentOrder = SearchResource.ListRequest.OrderEnum.Relevance;
-                        break;                                                                                              
-                }
+                CurrentOrder = (SearchResource.ListRequest.OrderEnum)Enum.Parse(typeof(SearchResource.ListRequest.OrderEnum),ArguedValue);
             }
             return CurrentOrder;
         }
@@ -127,33 +102,20 @@ namespace YoutubeAPIImplementation
 
         private SearchResource.ListRequest.VideoDurationEnum _duration;
 
-        public SearchResource.ListRequest.VideoDurationEnum CurrentDuration
+        private SearchResource.ListRequest.VideoDurationEnum CurrentDuration
         {
             get { return _duration; }
             set { _duration = value; }
         }
 
-        public SearchResource.ListRequest.VideoDurationEnum SetDurationSetting(Dictionary<string,string> arg)
+        private SearchResource.ListRequest.VideoDurationEnum SetDurationSetting(Dictionary<string,string> arg)
         {
             if (!arg.ContainsKey("VideoDuration") || arg["VideoDuration"] == "null")
             {
                 CurrentDuration = SearchResource.ListRequest.VideoDurationEnum.Any;
             } else {
                 string ArguedValue = arg["VideoDuration"];
-                switch(ArguedValue){
-                    case ("long"):
-                        CurrentDuration = SearchResource.ListRequest.VideoDurationEnum.Long__;
-                        break;
-                    case ("medium"):
-                        CurrentDuration = SearchResource.ListRequest.VideoDurationEnum.Medium;
-                        break;
-                    case ("short"):
-                        CurrentDuration = SearchResource.ListRequest.VideoDurationEnum.Short__;
-                        break;
-                    default:
-                        CurrentDuration = SearchResource.ListRequest.VideoDurationEnum.Any;
-                        break;                                                                                              
-                }
+                CurrentDuration = (SearchResource.ListRequest.VideoDurationEnum)Enum.Parse(typeof(SearchResource.ListRequest.VideoDurationEnum),ArguedValue);
             }
             return CurrentDuration;
         }

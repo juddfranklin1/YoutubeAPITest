@@ -139,10 +139,7 @@ namespace YoutubeAPIImplementation
             SearchSettings Settings = new SearchSettings();
 
             searchListRequest.Type = "video";
-            searchListRequest.Order = Settings.SetOrderSetting(arg);
-            searchListRequest.VideoDefinition = Settings.SetDefinitionSetting(arg);
-            searchListRequest.VideoDimension = Settings.SetDimensionSetting(arg);
-            searchListRequest.VideoDuration = Settings.SetDurationSetting(arg);
+            Settings.SetSettings(searchListRequest, arg);
             
             searchListRequest.MaxResults = 10;
             searchListRequest.VideoEmbeddable = SearchResource.ListRequest.VideoEmbeddableEnum.True__;
