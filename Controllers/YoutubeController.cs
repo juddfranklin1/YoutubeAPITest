@@ -51,6 +51,7 @@ namespace TestBootstrapWebApp.Controllers
 
             foreach(KeyValuePair<string, Dictionary<string,dynamic>> entry in SearchResults)
             {
+
                 string EmbedCodeString = String.Format("<iframe src='https://www.youtube.com/embed/{0}' frameborder='0' allowfullscreen></iframe>", entry.Key);
                 
                 if(Incrementer %2 == 0){
