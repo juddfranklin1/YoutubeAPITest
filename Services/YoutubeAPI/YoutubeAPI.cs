@@ -23,7 +23,14 @@ namespace YoutubeAPIImplementation
 
     public class YoutubeAPISearch
     {
-        private const string ApiKeyString = "AIzaSyBnAloJ18VwhKYgtz8qK9FYxRnpZPKkA04";
+        //The Api Key was in the old code. I freely admit it.
+        //I am only now becoming less a fool.
+        //Still working on mastering debugging, cleaning out the code, etc.
+        //In the meantime, if you want to use this stuff,
+        //generate your own damned API Key at https://console.developers.google.com
+        //and put it in your environment variables.
+
+        private string ApiKeyString = Environment.GetEnvironmentVariable("YOUTUBE_API_KEY");
 
         /// <summary>
         /// YouTube Data API v3 sample: search by keyword.
@@ -52,11 +59,11 @@ namespace YoutubeAPIImplementation
                         ConstructedResults.Add(videoId,new Dictionary<string,dynamic>());
                         ConstructedResults[videoId]["snippet"] = Results[videoId];
                     }
-                    
+
                     Task<List<Video>> VideoDetails = new YoutubeAPISearch().RunVideoLookup(videoIds);
 
                     VideoDetails.Wait();
-                    
+
                     List<Video> VideoDetailResults = await VideoDetails;
 
                     foreach (Video videoResult in VideoDetailResults)
@@ -74,19 +81,19 @@ namespace YoutubeAPIImplementation
             {
                 Dictionary<string,dynamic> Errors = new Dictionary<string,dynamic>();
                 Dictionary<string,Dictionary<string,dynamic>> Results = new Dictionary<string,Dictionary<string,dynamic>>();
-                
+
                 int Counter = 0;
-                
+
                 SearchResultSnippet errorResult = new SearchResultSnippet();
 
                 StringBuilder errorMessages = new StringBuilder("Errors");
 
                 foreach (var e in ex.InnerExceptions)
-                {   
+                {
                     errorMessages.AppendFormat("\nError #{0}: {1}", Counter.ToString(), e.ToString());
                     Counter++;
                 }
-                errorResult.Title = "***YOUTUBE SEARCH EXCEPTIONS THROWN***";   
+                errorResult.Title = "***YOUTUBE SEARCH EXCEPTIONS THROWN***";
                 errorResult.Description = errorMessages.ToString();
                 Errors.Add("Exceptions: ", errorResult);
                 Results.Add("NO_ID", Errors);
@@ -135,12 +142,12 @@ namespace YoutubeAPIImplementation
             } else {
                 searchListRequest.Q = arg["SearchTerm"];
             }
-            
+
             SearchSettings Settings = new SearchSettings();
 
             searchListRequest.Type = "video";
             Settings.SetSettings(searchListRequest, arg);
-            
+
             searchListRequest.MaxResults = 10;
             searchListRequest.VideoEmbeddable = SearchResource.ListRequest.VideoEmbeddableEnum.True__;
 
@@ -154,7 +161,7 @@ namespace YoutubeAPIImplementation
             {
                 videos.Add(individualSearchResult.Id.VideoId,individualSearchResult.Snippet);
             }
-                        
+
             return videos;
         }
 

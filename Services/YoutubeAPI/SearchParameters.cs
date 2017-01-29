@@ -22,7 +22,7 @@ namespace YoutubeAPIImplementation
 {
     public class SearchSettings
     {
-
+        public SearchSettings() { }
         public void SetSettings(Google.Apis.YouTube.v3.SearchResource.ListRequest request,Dictionary<string,string> arg)
         {
             Dictionary<string,dynamic> settingsDict = new Dictionary<string,dynamic>();
